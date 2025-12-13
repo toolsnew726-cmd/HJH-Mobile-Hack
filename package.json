@@ -1,52 +1,10 @@
 {
-  "name": "hidden-app-dashboard",
+  "name": "hjh-mobile-hack",
   "version": "1.0.0",
-  "description": "Complete Hidden App System with Dashboard and APK Generator",
-  "main": "index.html",
-  "scripts": {
-    "dev": "vercel dev",
-    "start": "vercel dev",
-    "deploy": "vercel --prod",
-    "build": "echo 'No build required for static site'",
-    "test": "echo 'No tests configured'",
-    "setup": "node setup.js",
-    "lint": "echo 'No linting configured'"
-  },
-  "keywords": [
-    "hidden-app",
-    "dashboard",
-    "apk-generator",
-    "supabase",
-    "vercel"
-  ],
-  "author": "Your Name",
-  "license": "MIT",
   "engines": {
-    "node": ">=18.x",
-    "npm": ">=8.x"
+    "node": "18.x"
   },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.39.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2"
-  },
-  "devDependencies": {
-    "vercel": "^34.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/yourusername/hidden-app-system.git"
-  },
-  "bugs": {
-    "url": "https://github.com/yourusername/hidden-app-system/issues"
-  },
-  "homepage": "https://your-project.vercel.app",
-  "private": true,
-  "files": [
-    "index.html",
-    "api/",
-    "package.json",
-    "README.md"
-  ]
+  "scripts": {
+    "start": "node server.js"
+  }
 }
